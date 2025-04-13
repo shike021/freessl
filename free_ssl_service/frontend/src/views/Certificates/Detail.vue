@@ -113,7 +113,20 @@ export default {
 </script>
 <style scoped>
 .certificate-detail {
-  padding: 20px;
+  padding: 40px;
+  background-color: #ffe0b2; /* 浅橙色 */
+}
+
+.el-card {
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #ff5722; /* 深橙色 */
 }
 
 .mb-20 {
@@ -125,6 +138,17 @@ export default {
 }
 
 .text-danger {
-  color: #f56c6c;
+  color: #e65100; /* 深橙色 */
+}
+
+.el-button {
+  width: 100%;
+  background-color: #ff9800; /* 主色调橙色 */
+  border-color: #ff9800;
+}
+
+.el-button:hover {
+  background-color: #fb8c00; /* 稍深的橙色 */
+  border-color: #fb8c00;
 }
 </style>

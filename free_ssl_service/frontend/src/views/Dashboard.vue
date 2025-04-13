@@ -98,6 +98,7 @@ export default {
 <style scoped>
 .dashboard {
   padding: 20px;
+  background-color: #ffe0b2; /* 浅橙色 */
 }
 
 .mb-20 {
@@ -111,13 +112,19 @@ export default {
   justify-content: center;
   align-items: center;
   text-align: center;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
 }
 
 .recent-activity {
   margin-top: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
 }
 
 .text-danger {
-  color: #f56c6c;
+  color: #e65100; /* 深橙色 */
 }
 </style>

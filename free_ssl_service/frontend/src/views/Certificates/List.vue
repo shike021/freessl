@@ -115,6 +115,7 @@ export default {
 <style scoped>
 .certificate-list {
   padding: 20px;
+  background-color: #ffe0b2; /* 浅橙色 */
 }
 
 .mb-20 {
@@ -126,6 +127,29 @@ export default {
 }
 
 .text-danger {
-  color: #f56c6c;
+  color: #e65100; /* 深橙色 */
+}
+
+.el-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.el-button--mini {
+  background-color: #ff9800; /* 主色调橙色 */
+  border-color: #ff9800;
+}
+
+.el-button--mini:hover {
+  background-color: #fb8c00; /* 稍深的橙色 */
+  border-color: #fb8c00;
+}
+
+.el-tag--success {
+  background-color: #cddc39; /* 成功状态绿色 */
+}
+
+.el-tag--danger {
+  background-color: #e65100; /* 失败状态深橙色 */
 }
 </style>

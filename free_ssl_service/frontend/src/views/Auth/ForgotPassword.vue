@@ -1,13 +1,14 @@
 <template>
-  <div class="certificate-create">
-    <el-card>
-      <h2>申请新证书</h2>
+  <div class="forgot-password">
+    <el-card class="forgot-password-card">
+      <h1>忘记密码</h1>
       
-      <el-form ref="form" :model="form" :rules="rules" @submit.native.prevent="createCertificate">
-        <el-form-item prop="domains">
+      <el-form ref="form" :model="form" :rules="rules" @submit.native.prevent="sendResetLink">
+        <el-form-item prop="email">
           <el-input
-            v-model="form.domains"
-            placeholder="输入域名,多个用逗号分隔"
+            v-model="form.email"
+            placeholder="请输入您的邮箱地址"
+            prefix-icon="el-icon-message"
           />
         </el-form-item>
         
@@ -16,45 +17,43 @@
             type="primary"
             native-type="submit"
             :loading="loading"
-            class="create-btn"
+            class="reset-btn"
           >
-            申请证书
+            发送重置链接
           </el-button>
         </el-form-item>
       </el-form>
     </el-card>
   </div>
 </template>
-<script>
-import { mapActions } from 'vuex'
 
+<script>
 export default {
+  name: 'ForgotPassword',
   data() {
     return {
       form: {
-        domains: ''
+        email: ''
       },
       rules: {
-        domains: [
-          { required: true, message: '请输入域名', trigger: 'blur' }
+        email: [
+          { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+          { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
         ]
       },
       loading: false
     }
   },
   methods: {
-    ...mapActions('certs', ['createCertificate']),
-    
-    async createCertificate() {
+    async sendResetLink() {
       this.$refs.form.validate(async valid => {
         if (valid) {
           this.loading = true
           try {
-            await this.createCertificate(this.form)
-            this.$message.success('证书申请成功')
-            this.$router.push('/certificates')
+            await this.$store.dispatch('auth/sendResetLink', this.form.email)
+            this.$message.success('重置链接已发送，请检查您的邮箱')
           } catch (error) {
-            this.$message.error('申请失败: ' + (error.response?.data?.message || error.message))
+            this.$message.error('发送失败: ' + (error.response?.data?.message || error.message))
           } finally {
             this.loading = false
           }
@@ -64,31 +63,38 @@ export default {
   }
 }
 </script>
+
 <style scoped>
-.certificate-create {
+.forgot-password {
   padding: 40px;
   background-color: #ffe0b2; /* 浅橙色 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
-.el-card {
+.forgot-password-card {
+  width: 400px;
+  padding: 40px;
   border-radius: 12px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   background-color: #fff;
 }
 
-h2 {
+h1 {
   text-align: center;
   margin-bottom: 20px;
   color: #ff5722; /* 深橙色 */
 }
 
-.create-btn {
+.reset-btn {
   width: 100%;
   background-color: #ff9800; /* 主色调橙色 */
   border-color: #ff9800;
 }
 
-.create-btn:hover {
+.reset-btn:hover {
   background-color: #fb8c00; /* 稍深的橙色 */
   border-color: #fb8c00;
 }
