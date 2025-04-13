@@ -124,22 +124,56 @@ export default {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #f5f7fa;
+  background: #ffe0b2; /* 浅橙色 */
 }
 
 .login-box {
   width: 400px;
-  padding: 20px;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
 }
 
 h2 {
   text-align: center;
   margin-bottom: 20px;
-  color: #303133;
+  color: #ff5722; /* 深橙色 */
 }
 
 .login-btn {
   width: 100%;
+  background-color: #ff9800; /* 主色调橙色 */
+  border-color: #ff9800;
+}
+
+.login-btn:hover {
+  background-color: #fb8c00; /* 稍深的橙色 */
+  border-color: #fb8c00;
+}
+
+.oauth-google-btn {
+  width: 100%;
+  margin-top: 10px;
+  background-color: #dd2c00; /* Google风格红色 */
+  border-color: #dd2c00;
+}
+
+.oauth-google-btn:hover {
+  background-color: #c42600; /* 稍深的红色 */
+  border-color: #c42600;
+}
+
+.oauth-wechat-btn {
+  width: 100%;
+  margin-top: 10px;
+  background-color: #00c853; /* 微信风格绿色 */
+  border-color: #00c853;
+}
+
+.oauth-wechat-btn:hover {
+  background-color: #00b24d; /* 稍深的绿色 */
+  border-color: #00b24d;
 }
 
 .links {
@@ -150,7 +184,12 @@ h2 {
 }
 
 a {
-  color: #409eff;
+  color: #ff9800; /* 主色调橙色 */
   text-decoration: none;
+}
+
+a:hover {
+  color: #e65100; /* 稍深的橙色 */
+  text-decoration: underline;
 }
 </style>
