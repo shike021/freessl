@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, url_for
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from services.auth_service import AuthService
 from models.user_model import User, db
 from services.email_service import EmailService
@@ -7,6 +8,33 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
+    """
+    Register a new user
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - username
+            - email
+            - password
+          properties:
+            username:
+              type: string
+            email:
+              type: string
+            password:
+              type: string
+    responses:
+      201:
+        description: User created successfully
+      400:
+        description: Bad request
+    """
     data = request.json
     
     if not data.get('username') or not data.get('email') or not data.get('password'):
@@ -34,6 +62,32 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
+    """
+    Login user
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+            password:
+              type: string
+    responses:
+      200:
+        description: Login successful
+      401:
+        description: Invalid credentials
+      403:
+        description: Account not verified
+    """
     data = request.json
     
     if not data.get('username') or not data.get('password'):
@@ -58,6 +112,22 @@ def login():
 
 @auth_bp.route('/verify/<token>', methods=['GET'])
 def verify(token):
+    """
+    Verify user account
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: path
+        name: token
+        type: string
+        required: true
+    responses:
+      200:
+        description: Account verified successfully
+      400:
+        description: Invalid token
+    """
     user = User.query.filter_by(verification_token=token).first()
     if not user:
         return jsonify({'error': 'Invalid verification token'}), 400
@@ -70,6 +140,27 @@ def verify(token):
 
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
+    """
+    Request password reset
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - email
+          properties:
+            email:
+              type: string
+    responses:
+      200:
+        description: Reset email sent
+      400:
+        description: Bad request
+    """
     email = request.json.get('email')
     if not email:
         return jsonify({'error': 'Email is required'}), 400
@@ -85,6 +176,30 @@ def forgot_password():
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
+    """
+    Reset password with token
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - token
+            - new_password
+          properties:
+            token:
+              type: string
+            new_password:
+              type: string
+    responses:
+      200:
+        description: Password reset successfully
+      400:
+        description: Bad request
+    """
     token = request.json.get('token')
     new_password = request.json.get('new_password')
     
@@ -105,6 +220,19 @@ def reset_password():
 
 @auth_bp.route('/me', methods=['GET'])
 def get_current_user():
+    """
+    Get current user information
+    ---
+    tags:
+      - Authentication
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: User information
+      401:
+        description: Unauthorized
+    """
     try:
         user = AuthService.get_current_user()
         return jsonify(user.to_dict())

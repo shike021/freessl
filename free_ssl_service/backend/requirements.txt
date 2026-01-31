@@ -14,3 +14,6 @@ sendgrid==6.9.7
 Flask-WTF==1.0.0
 Flask-Limiter==1.4.0
 cryptography==3.4.8
+pytest==6.2.5
+pytest-cov==3.0.0
+flasgger==0.9.7.1

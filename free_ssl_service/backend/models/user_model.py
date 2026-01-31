@@ -14,6 +14,7 @@ class User(db.Model):
     verified = db.Column(db.Boolean, default=False)
     verification_token = db.Column(db.String(128))
     reset_token = db.Column(db.String(128))
+    reward_points = db.Column(db.Integer, default=0)
     
     certificates = db.relationship('Certificate', backref='user', lazy=True)
 
@@ -41,5 +42,6 @@ class User(db.Model):
             'username': self.username,
             'email': self.email,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'verified': self.verified
+            'verified': self.verified,
+            'reward_points': self.reward_points
         }
