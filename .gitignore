@@ -4,6 +4,7 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 
 # Runtime data
 pids
@@ -16,6 +17,8 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+*.lcov
+htmlcov/
 
 # nyc test coverage
 .nyc_output
@@ -43,21 +46,104 @@ jspm_packages/
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
 
 # IDEs and editors
 .vscode/
 .idea/
 *.code-workspace
+*.swp
+*.swo
+*~
 
 # Build output
 dist/
 build/
+*.egg-info/
+.eggs/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Cache files
 .cache/
 .temp/
 .tmp/
+.parcel-cache/
 
 # OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+
+# Python
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Database
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+
+# Certificates and keys
+*.pem
+*.key
+*.crt
+*.csr
+certificates/
+ssl/
+
+# Backup files
+*.bak
+*.backup
+*.old
+backups/
+
+# Docker
+.dockerignore
+
+# Testing
+.tox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Documentation
+docs/_build/
+docs/.doctrees/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Uploads
+uploads/
+files/
+
+# Secrets
+secrets/
+*.secret
+credentials.json
+service-account.json

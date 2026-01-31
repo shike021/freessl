@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 
 # 安装依赖项
 COPY package*.json ./
-RUN npm install
+RUN npm install --registry=https://registry.npmmirror.com
 
 # 复制项目文件并构建
 COPY . .

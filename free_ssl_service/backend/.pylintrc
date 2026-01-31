@@ -1,0 +1,34 @@
+[MASTER]
+load-plugins=pylint_flask
+
+[MESSAGES CONTROL]
+disable=
+    C0111,
+    C0103,
+    R0903,
+    R0913,
+    W0212,
+    W0613,
+    C0330,
+    C0326
+
+[FORMAT]
+max-line-length=100
+indent-string='    '
+
+[DESIGN]
+max-args=7
+max-locals=15
+max-returns=6
+max-branches=12
+max-statements=50
+max-parents=7
+max-attributes=7
+min-public-methods=2
+max-public-methods=20
+
+[BASIC]
+good-names=i,j,k,ex,Run,_
+
+[IMPORTS]
+deprecated-modules=regsub,TERMIOS,Bastion,rexec
