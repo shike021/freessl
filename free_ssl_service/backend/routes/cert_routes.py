@@ -1,27 +1,20 @@
 from flask import Blueprint, request, jsonify
 from services.auth_service import AuthService
 from services.cert_service import CertService
-from models.cert_model import Certificate
+from models.cert_model import Certificate, db
 from datetime import datetime, timedelta
 
 cert_bp = Blueprint('cert', __name__, url_prefix='/api/certs')
 
 @cert_bp.route('', methods=['GET'])
 def list_certs():
-    user = AuthService.get_current_user(request)
-    certs = Certificate.objects(user=user).order_by('-issue_date')
-    return jsonify([{
-        'id': str(cert.id),
-        'domains': cert.domains,
-        'issue_date': cert.issue_date.isoformat(),
-        'expiry_date': cert.expiry_date.isoformat(),
-        'free_expiry_date': cert.free_expiry_date.isoformat(),
-        'status': 'active' if cert.expiry_date > datetime.now() else 'expired'
-    } for cert in certs])
+    user = AuthService.get_current_user()
+    certs = Certificate.query.filter_by(user_id=user.id).order_by(Certificate.issue_date.desc()).all()
+    return jsonify([cert.to_dict() for cert in certs])
 
 @cert_bp.route('', methods=['POST'])
 def create_cert():
-    user = AuthService.get_current_user(request)
+    user = AuthService.get_current_user()
     data = request.json
     
     if not data.get('domains'):
@@ -35,34 +28,37 @@ def create_cert():
             user=user
         )
         
-        return jsonify({
-            'id': str(cert.id),
-            'domains': cert.domains,
-            'expiry_date': cert.expiry_date.isoformat()
-        }), 201
+        return jsonify(cert.to_dict()), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-@cert_bp.route('/<cert_id>', methods=['GET'])
+@cert_bp.route('/<int:cert_id>', methods=['GET'])
 def get_cert(cert_id):
-    user = AuthService.get_current_user(request)
-    cert = Certificate.objects.get_or_404(id=cert_id, user=user)
+    user = AuthService.get_current_user()
+    cert = Certificate.query.filter_by(id=cert_id, user_id=user.id).first()
     
-    # 检查证书是否可续期 (在免费期最后30天内或已过期)
-    can_renew = (
-        (cert.free_expiry_date - datetime.now()).days <= 30 or
-        cert.expiry_date <= datetime.now()
-    )
+    if not cert:
+        return jsonify({'error': 'Certificate not found'}), 404
     
-    return jsonify({
-        'id': str(cert.id),
-        'domains': cert.domains,
-        'issue_date': cert.issue_date.isoformat(),
-        'expiry_date': cert.expiry_date.isoformat(),
-        'free_expiry_date': cert.free_expiry_date.isoformat(),
-        'status': 'active' if cert.expiry_date > datetime.now() else 'expired',
-        'can_renew': can_renew,
-        'certificate': open(f"{cert.cert_path}/cert.pem").read(),
-        'private_key': open(f"{cert.cert_path}/privkey.pem").read(),
-        'chain': open(f"{cert.cert_path}/chain.pem").read()
-    })
+    cert_dict = cert.to_dict()
+    
+    # 读取证书文件
+    try:
+        cert_dict['certificate'] = open(f"{cert.cert_path}/cert.pem").read()
+        cert_dict['private_key'] = open(f"{cert.cert_path}/privkey.pem").read()
+        cert_dict['chain'] = open(f"{cert.cert_path}/chain.pem").read()
+    except FileNotFoundError:
+        return jsonify({'error': 'Certificate files not found'}), 404
+    
+    return jsonify(cert_dict)
+
+@cert_bp.route('/<int:cert_id>/renew', methods=['POST'])
+def renew_cert(cert_id):
+    user = AuthService.get_current_user()
+    
+    try:
+        cert_service = CertService()
+        cert = cert_service.renew_cert(cert_id, user)
+        return jsonify(cert.to_dict())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400

@@ -9,6 +9,7 @@
 import Navbar from '@/components/Navbar.vue'
 
 export default {
+  name: 'App',
   components: {
     Navbar
   }
@@ -16,34 +17,16 @@ export default {
 </script>
 
 <style>
+body {
+  background-color: #FFF3E0; /* 柔和背景色 */
+}
+
 #app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #333;
-  background-color: #ff9800; /* 主色调橙色 */
-  padding: 20px;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #ff9800; /* 主色调橙色 */
-}
-
-html, body, #app {
-  height: 100%;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-}
-
-html, body, #app {
-  height: 100%;
+  text-align: center;
+  color: #FFA726; /* 新主色调 */
+  margin-top: 60px;
 }
 </style>

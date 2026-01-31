@@ -1,130 +1,131 @@
 <template>
-  <div class="dashboard">
-    <el-row :gutter="20" class="mb-20">
-      <el-col :span="12">
-        <el-card class="summary-card">
-          <h3>证书概览</h3>
-          <p>有效证书: {{ validCertificatesCount }}</p>
-          <p>即将到期: {{ expiringCertificatesCount }}</p>
-          <p>已过期: {{ expiredCertificatesCount }}</p>
-        </el-card>
-      </el-col>
-      
-      <el-col :span="12">
-        <el-card class="summary-card">
-          <h3>用户信息</h3>
-          <p>用户名: {{ user.username }}</p>
-          <p>邮箱: {{ user.email }}</p>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <el-card class="recent-activity">
-      <h3>最近活动</h3>
-      <el-table :data="recentCertificates" v-loading="loading">
-        <el-table-column prop="domains" label="域名" min-width="200"></el-table-column>
-        <el-table-column prop="issue_date" label="申请日期" width="150">
-          <template #default="{ row }">
-            {{ formatDate(row.issue_date) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="expiry_date" label="过期日期" width="150">
-          <template #default="{ row }">
-            <span :class="{'text-danger': isExpired(row.expiry_date)}">
-              {{ formatDate(row.expiry_date) }}
-            </span>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+  <div class="auth-container">
+    <section class="hero-section">
+      <div class="hero-content">
+        <h1>免费的SSL证书服务</h1>
+        <p>为您的网站提供安全、可靠的HTTPS加密，完全免费</p>
+        <router-link to="/certificates/create" class="button primary-button">
+          立即获取SSL证书
+        </router-link>
+      </div>
+    </section>
+
+    <section class="features-section">
+      <div class="feature">
+        <h3><i class="fas fa-lock"></i> 安全可靠</h3>
+        <p>采用行业标准的256位加密，确保数据传输安全</p>
+      </div>
+      <div class="feature">
+        <h3><i class="fas fa-sync-alt"></i> 自动续期</h3>
+        <p>90天有效期到期自动提醒，轻松续期保障服务不中断</p>
+      </div>
+      <div class="feature">
+        <h3><i class="fas fa-headset"></i> 专业支持</h3>
+        <p>遇到任何问题，我们的专业团队随时为您提供帮助</p>
+      </div>
+    </section>
+
+    <section class="testimonials">
+      <h2>用户评价</h2>
+      <div class="testimonial-cards">
+        <blockquote>
+          <p>"使用Free SSL服务让我们的网站在短时间内就获得了安全认证，流程非常简单！"</p>
+          <cite>- 张小伟, Tech Startup CEO</cite>
+        </blockquote>
+        <blockquote>
+          <p>"作为个人博客主，找到完全免费的SSL服务真的省去了很多烦恼。"</p>
+          <cite>- 李华, Personal Blogger</cite>
+        </blockquote>
+      </div>
+    </section>
   </div>
 </template>
 <script>
-import { mapState, mapActions } from 'vuex'
-
 export default {
-  data() {
-    return {
-      loading: false
-    }
-  },
-  computed: {
-    ...mapState('auth', ['user']),
-    ...mapState('certs', ['certificates']),
-    validCertificatesCount() {
-      return this.certificates.filter(cert => !this.isExpired(cert.expiry_date)).length
-    },
-    expiringCertificatesCount() {
-      const now = new Date()
-      const threshold = new Date(now.setDate(now.getDate() + 30))
-      return this.certificates.filter(cert =>
-        new Date(cert.expiry_date) > now && new Date(cert.expiry_date) <= threshold
-      ).length
-    },
-    expiredCertificatesCount() {
-      return this.certificates.filter(cert => this.isExpired(cert.expiry_date)).length
-    },
-    recentCertificates() {
-      return [...this.certificates].sort((a, b) => new Date(b.issue_date) - new Date(a.issue_date)).slice(0, 5)
-    }
-  },
-  created() {
-    this.loadCertificates()
-  },
-  methods: {
-    ...mapActions('certs', ['fetchCertificates']),
-    
-    async loadCertificates() {
-      this.loading = true
-      try {
-        await this.fetchCertificates()
-      } catch (error) {
-        this.$message.error('加载证书失败: ' + (error.response?.data?.message || error.message))
-      } finally {
-        this.loading = false
-      }
-    },
-    
-    formatDate(date) {
-      return new Date(date).toLocaleDateString()
-    },
-    
-    isExpired(expiryDate) {
-      return new Date(expiryDate) < new Date()
-    }
-  }
+  name: 'Dashboard'
 }
 </script>
 <style scoped>
-.dashboard {
-  padding: 20px;
-  background-color: #ffe0b2; /* 浅橙色 */
+.auth-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
-.mb-20 {
-  margin-bottom: 20px;
-}
-
-.summary-card {
-  height: 150px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+.hero-section {
+  background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+  color: white;
+  padding: 5rem 2rem;
+  border-radius: 8px;
+  margin-bottom: 3rem;
   text-align: center;
-  border-radius: 12px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
 }
 
-.recent-activity {
-  margin-top: 20px;
-  border-radius: 12px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
+.hero-content {
+  max-width: 800px;
+  margin: 0 auto;
 }
 
-.text-danger {
-  color: #e65100; /* 深橙色 */
+.hero-content h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero-content p {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.features-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.feature {
+  flex: 1 1 300px;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.feature i {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--secondary-color);
+}
+
+.testimonials {
+  margin-top: 3rem;
+}
+
+.testimonials h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.testimonial-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+blockquote {
+  flex: 1 1 300px;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid var(--secondary-color);
+}
+
+cite {
+  display: block;
+  margin-top: 1rem;
+  font-style: normal;
+  color: var(--secondary-color);
 }
 </style>

@@ -1,7 +1,147 @@
+version: '3.8'
+
 services:
   frontend:
     build: 
       context: ./frontend
       dockerfile: Dockerfile
+    expose:
+      - "8080"
+    depends_on:
+      - backend
+    environment:
+      - VUE_APP_API_URL=https://localhost/api
+    networks:
+      - freessl-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    expose:
+      - "5000"
+    depends_on:
+      - mariadb
+      - redis
+    environment:
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT=3306
+      - MARIADB_USER=freessl
+      - MARIADB_PASS=freessl_password
+      - MARIADB_DB=freessl
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-change-in-production
+      - EMAIL_API_KEY=${EMAIL_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM:-noreply@freessl.com}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-encryption-key-32-bytes-long}
+    volumes:
+      - ./backend:/app
+      - certbot-config:/etc/letsencrypt
+      - certbot-work:/var/lib/letsencrypt
+      - certbot-log:/var/log/letsencrypt
+    networks:
+      - freessl-network
+
+  mariadb:
+    image: mariadb:10.6
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=freessl
+      - MYSQL_USER=freessl
+      - MYSQL_PASSWORD=freessl_password
+    volumes:
+      - mariadb-data:/var/lib/mysql
     ports:
-      - "8080:8080"
+      - "3306:3306"
+    networks:
+      - freessl-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - freessl-network
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.celery worker --loglevel=info
+    depends_on:
+      - backend
+      - redis
+      - mariadb
+    environment:
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT=3306
+      - MARIADB_USER=freessl
+      - MARIADB_PASS=freessl_password
+      - MARIADB_DB=freessl
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-change-in-production
+    volumes:
+      - ./backend:/app
+      - certbot-config:/etc/letsencrypt
+      - certbot-work:/var/lib/letsencrypt
+      - certbot-log:/var/log/letsencrypt
+    networks:
+      - freessl-network
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.celery beat --loglevel=info
+    depends_on:
+      - backend
+      - redis
+      - mariadb
+    environment:
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT=3306
+      - MARIADB_USER=freessl
+      - MARIADB_PASS=freessl_password
+      - MARIADB_DB=freessl
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-change-in-production
+    volumes:
+      - ./backend:/app
+    networks:
+      - freessl-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - certbot-config:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - freessl-network
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot-config:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  mariadb-data:
+  certbot-config:
+  certbot-work:
+  certbot-log:
+  certbot-www:
+
+networks:
+  freessl-network:
+    driver: bridge

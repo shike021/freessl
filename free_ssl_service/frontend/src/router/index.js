@@ -59,11 +59,23 @@ const router = new VueRouter({
     routes
 })
 
+// Flag to track if user has been loaded
+let userLoaded = false
+
 router.beforeEach(async (to, from, next) => {
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
     const guest = to.matched.some(record => record.meta.guest)
 
-    await store.dispatch('auth/loadUser')
+    // Only load user if not already loaded
+    if (!userLoaded) {
+        try {
+            await store.dispatch('auth/loadUser')
+            userLoaded = true
+        } catch (error) {
+            // Ignore errors on initial load
+        }
+    }
+    
     const isAuthenticated = store.state.auth.isAuthenticated
 
     if (requiresAuth && !isAuthenticated) {
