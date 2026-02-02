@@ -10,6 +10,8 @@ Free SSL Service 提供RESTful API接口，用于用户认证、证书管理、�
 - **认证方式**: JWT Bearer Token
 - **响应格式**: JSON
 - **字符编码**: UTF-8
+- **API版本**: v1.0.0
+- **Token有效期**: 24小时
 
 ## 在线文档
 
@@ -118,12 +120,52 @@ Content-Type: application/json
 ```http
 GET /api/certs
 Authorization: Bearer <token>
+
+查询参数:
+- page: 页码（默认1）
+- per_page: 每页数量（默认20）
+- status: 证书状态筛选（可选：pending, active, expired, revoked）
+```
+
+响应示例：
+```json
+{
+  "certificates": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "domains": ["example.com", "www.example.com"],
+      "status": "active",
+      "created_at": "2024-01-01T00:00:00Z",
+      "expires_at": "2024-04-01T00:00:00Z",
+      "auto_renew": true
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "per_page": 20
+}
 ```
 
 #### 获取证书详情
 ```http
 GET /api/certs/<id>
 Authorization: Bearer <token>
+```
+
+响应示例：
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "domains": ["example.com", "www.example.com"],
+  "status": "active",
+  "created_at": "2024-01-01T00:00:00Z",
+  "expires_at": "2024-04-01T00:00:00Z",
+  "auto_renew": true,
+  "certificate": "-----BEGIN CERTIFICATE-----\n...",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n..."
+}
 ```
 
 #### 创建证书
@@ -133,8 +175,31 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "domain": "string",
-  "email": "string"
+  "domains": "string",  // 域名列表，以逗号分隔，例如："example.com,www.example.com"
+  "email": "string",     // 联系人邮箱
+  "type": "single|multi|wildcard",  // 证书类型
+  "validation_method": "http|dns",  // 验证方式
+  "auto_renew": true   // 是否自动续期（默认true）
+}
+```
+
+响应示例：
+```json
+{
+  "id": 1,
+  "domains": ["example.com", "www.example.com"],
+  "status": "pending",
+  "validation_method": "dns",
+  "validation_records": [
+    {
+      "domain": "example.com",
+      "type": "TXT",
+      "name": "_acme-challenge.example.com",
+      "value": "abc123..."
+    }
+  ],
+  "created_at": "2024-01-01T00:00:00Z",
+  "expires_at": "2024-04-01T00:00:00Z"
 }
 ```
 
@@ -144,10 +209,65 @@ POST /api/certs/<id>/renew
 Authorization: Bearer <token>
 ```
 
+响应示例：
+```json
+{
+  "id": 1,
+  "status": "renewing",
+  "message": "Certificate renewal initiated",
+  "validation_records": [
+    {
+      "domain": "example.com",
+      "type": "TXT",
+      "name": "_acme-challenge.example.com",
+      "value": "xyz789..."
+    }
+  ]
+}
+```
+
 #### 删除证书
 ```http
 DELETE /api/certs/<id>
 Authorization: Bearer <token>
+```
+
+响应示例：
+```json
+{
+  "message": "Certificate deleted successfully"
+}
+```
+
+#### 下载证书
+```http
+GET /api/certs/<id>/download
+Authorization: Bearer <token>
+
+查询参数:
+- format: pem|pkcs12（默认pem）
+```
+
+响应：
+- PEM格式：返回证书和私钥的PEM格式文件
+- PKCS12格式：返回包含证书和私钥的.p12文件
+
+#### 验证证书状态
+```http
+GET /api/certs/<id>/status
+Authorization: Bearer <token>
+```
+
+响应示例：
+```json
+{
+  "id": 1,
+  "status": "active",
+  "valid_from": "2024-01-01T00:00:00Z",
+  "valid_to": "2024-04-01T00:00:00Z",
+  "days_until_expiry": 90,
+  "is_valid": true
+}
 ```
 
 ### 支付相关 (Payment)
@@ -241,9 +361,74 @@ Authorization: Bearer <token>
 
 ## 错误响应格式
 
+所有错误响应都遵循以下格式：
+
 ```json
 {
-  "error": "错误描述信息"
+  "error": "error_code",
+  "message": "Human readable error message",
+  "details": {}
+}
+```
+
+### 错误码列表
+
+| 错误码 | HTTP状态码 | 描述 |
+|--------|-----------|------|
+| `INVALID_TOKEN` | 401 | 认证token无效或格式错误 |
+| `EXPIRED_TOKEN` | 401 | 认证token已过期 |
+| `UNAUTHORIZED` | 401 | 未授权访问 |
+| `FORBIDDEN` | 403 | 无权限访问资源 |
+| `USER_NOT_FOUND` | 404 | 用户不存在 |
+| `CERTIFICATE_NOT_FOUND` | 404 | 证书不存在 |
+| `ORDER_NOT_FOUND` | 404 | 订单不存在 |
+| `INVITATION_NOT_FOUND` | 404 | 邀请码不存在 |
+| `VALIDATION_ERROR` | 400 | 请求参数验证失败 |
+| `USER_ALREADY_EXISTS` | 400 | 用户已存在 |
+| `INVALID_CREDENTIALS` | 401 | 用户名或密码错误 |
+| `DOMAIN_VALIDATION_FAILED` | 400 | 域名验证失败 |
+| `CERTIFICATE_ISSUANCE_FAILED` | 500 | 证书签发失败 |
+| `PAYMENT_FAILED` | 400 | 支付失败 |
+| `RATE_LIMIT_EXCEEDED` | 429 | 请求频率超限 |
+| `INTERNAL_SERVER_ERROR` | 500 | 服务器内部错误 |
+
+### 错误响应示例
+
+#### 认证错误
+```json
+{
+  "error": "INVALID_TOKEN",
+  "message": "Invalid or expired authentication token",
+  "details": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+#### 验证错误
+```json
+{
+  "error": "VALIDATION_ERROR",
+  "message": "Request validation failed",
+  "details": {
+    "fields": {
+      "email": "Invalid email format",
+      "password": "Password must be at least 8 characters"
+    }
+  }
+}
+```
+
+#### 频率限制错误
+```json
+{
+  "error": "RATE_LIMIT_EXCEEDED",
+  "message": "Too many requests. Please try again later.",
+  "details": {
+    "limit": 50,
+    "remaining": 0,
+    "reset": 1609459200
+  }
 }
 ```
 
@@ -261,10 +446,21 @@ X-RateLimit-Reset: 1609459200
 
 ## 安全说明
 
-1. 所有API请求（除了注册、登录、忘记密码）都需要JWT认证
-2. Token有效期为24小时，过期后需要重新登录
-3. 敏感数据（如密码）必须通过HTTPS传输
-4. 所有POST/PUT/DELETE请求都受CSRF保护
+1. **认证要求**：所有API请求（除了注册、登录、忘记密码）都需要JWT认证
+2. **Token有效期**：Token有效期为24小时，过期后需要重新登录
+3. **HTTPS传输**：敏感数据（如密码、私钥）必须通过HTTPS传输
+4. **CSRF保护**：所有POST/PUT/DELETE请求都受CSRF保护
+5. **输入验证**：所有输入参数都经过严格验证，防止SQL注入和XSS攻击
+6. **请求大小限制**：请求体大小限制为10MB
+7. **安全头部**：所有响应都包含安全HTTP头部：
+   - `X-Content-Type-Options: nosniff`
+   - `X-Frame-Options: SAMEORIGIN`
+   - `X-XSS-Protection: 1; mode=block`
+   - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+   - `Content-Security-Policy: default-src 'self'`
+8. **CORS配置**：跨域请求受CORS策略限制，仅允许特定域名访问
+9. **速率限制**：API请求受速率限制保护，防止滥用
+10. **数据加密**：所有敏感数据在数据库中加密存储
 
 ## 测试
 

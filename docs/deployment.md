@@ -48,7 +48,8 @@ sudo systemctl start docker
 sudo systemctl enable docker
 
 # 安装Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+LATEST_COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d\" -f4)
+sudo curl -L "https://github.com/docker/compose/releases/download/$LATEST_COMPOSE_VERSION/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
 # 验证安装
@@ -216,7 +217,7 @@ curl -I https://yourdomain.com
 
 ```bash
 # 进入后端容器
-docker-compose exec backend sh
+docker-compose -f free_ssl_service/docker-compose.yml exec backend sh
 
 # 初始化数据库
 python -c "from app import app, db; app.app_context().push(); db.create_all()"
@@ -242,7 +243,7 @@ DATE=$(date +%Y%m%d_%H%M%S)
 mkdir -p $BACKUP_DIR
 
 # 备份数据库
-docker-compose exec -T mariadb mysqldump -u freessl -p$MARIADB_PASS freessl > $BACKUP_DIR/db_$DATE.sql
+docker-compose -f free_ssl_service/docker-compose.yml exec -T mariadb mysqldump -u freessl -p$MARIADB_PASS freessl > $BACKUP_DIR/db_$DATE.sql
 
 # 压缩备份
 gzip $BACKUP_DIR/db_$DATE.sql
@@ -309,11 +310,19 @@ else
 fi
 
 # 检查数据库
-DB_STATUS=$(docker-compose exec -T mariadb mysqladmin -u freessl -p$MARIADB_PASS ping 2>&1)
+DB_STATUS=$(docker-compose -f free_ssl_service/docker-compose.yml exec -T mariadb mysqladmin -u freessl -p$MARIADB_PASS ping 2>&1)
 if [[ $DB_STATUS == *"mysqld is alive"* ]]; then
     echo "Database: OK"
 else
     echo "Database: FAILED"
+fi
+
+# 检查Redis
+REDIS_STATUS=$(docker-compose -f free_ssl_service/docker-compose.yml exec -T redis redis-cli ping 2>&1)
+if [ "$REDIS_STATUS" == "PONG" ]; then
+    echo "Redis: OK"
+else
+    echo "Redis: FAILED"
 fi
 ```
 
@@ -330,13 +339,13 @@ git pull origin production
 
 ```bash
 # 停止服务
-docker-compose down
+docker-compose -f free_ssl_service/docker-compose.yml down
 
 # 重新构建镜像
-docker-compose build
+docker-compose -f free_ssl_service/docker-compose.yml build
 
 # 启动服务
-docker-compose up -d
+docker-compose -f free_ssl_service/docker-compose.yml up -d
 
 # 清理旧镜像
 docker image prune -f
@@ -348,7 +357,7 @@ docker image prune -f
 
 ```bash
 # 进入后端容器
-docker-compose exec backend sh
+docker-compose -f free_ssl_service/docker-compose.yml exec backend sh
 
 # 运行迁移（需要配置Flask-Migrate）
 flask db upgrade
@@ -363,7 +372,7 @@ exit
 
 ```bash
 # 查看容器日志
-docker-compose logs <service-name>
+docker-compose -f free_ssl_service/docker-compose.yml logs <service-name>
 
 # 检查端口占用
 netstat -tlnp | grep -E ':(80|443|5000|3306|6379)'
@@ -379,10 +388,10 @@ free -h
 
 ```bash
 # 检查MariaDB容器状态
-docker-compose ps mariadb
+docker-compose -f free_ssl_service/docker-compose.yml ps mariadb
 
 # 进入MariaDB容器
-docker-compose exec mariadb mysql -u freessl -p
+docker-compose -f free_ssl_service/docker-compose.yml exec mariadb mysql -u freessl -p
 
 # 检查数据库
 SHOW DATABASES;
@@ -394,13 +403,13 @@ SHOW TABLES;
 
 ```bash
 # 手动续期证书
-docker-compose exec certbot certbot renew
+docker-compose -f free_ssl_service/docker-compose.yml exec certbot certbot renew
 
 # 检查证书有效期
-docker-compose exec certbot certbot certificates
+docker-compose -f free_ssl_service/docker-compose.yml exec certbot certbot certificates
 
 # 重新加载Nginx
-docker-compose restart nginx
+docker-compose -f free_ssl_service/docker-compose.yml restart nginx
 ```
 
 ## 性能优化
@@ -412,7 +421,7 @@ docker-compose restart nginx
 ```yaml
 mariadb:
   image: mariadb:10.6
-  command: --innodb-buffer-pool-size=1G --max-connections=200
+  command: --innodb-buffer-pool-size=1G --max-connections=200 --query-cache-size=64M --sort-buffer-size=2M
   environment:
     - MYSQL_ROOT_PASSWORD=root_password
     - MYSQL_DATABASE=freessl
@@ -420,6 +429,18 @@ mariadb:
     - MYSQL_PASSWORD=freessl_password
   volumes:
     - mariadb-data:/var/lib/mysql
+  healthcheck:
+    test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "freessl", "-p$MYSQL_PASSWORD"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+  restart:
+    unless-stopped
+  deploy:
+    resources:
+      limits:
+        cpus: '1'
+        memory: 1G
 ```
 
 ### Redis优化
@@ -427,18 +448,66 @@ mariadb:
 ```yaml
 redis:
   image: redis:7-alpine
-  command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+  command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
+  volumes:
+    - redis-data:/data
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+  restart:
+    unless-stopped
+  deploy:
+    resources:
+      limits:
+        cpus: '0.5'
+        memory: 512M
 ```
 
 ### Nginx优化
 
-编辑 `nginx/nginx.conf`：
+编辑 `free_ssl_service/frontend/nginx.conf`，添加以下配置：
 
 ```nginx
-worker_processes auto;
-worker_connections 2048;
+# 启用gzip压缩
+gzip on;
+gzip_vary on;
+gzip_min_length 1024;
+gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/json;
+
+# 缓存静态资源
+location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+}
+
+# 安全头部
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';" always;
+
+# 连接优化
 keepalive_timeout 65;
+keepalive_requests 100;
 client_max_body_size 10M;
+
+# 工作进程数
+worker_processes auto;
+worker_connections 1024;
+
+# 启用缓存
+proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=my_cache:10m max_size=1g inactive=60m use_temp_path=off;
+
+# 代理缓存配置
+location /api/ {
+    proxy_cache my_cache;
+    proxy_cache_valid 200 10m;
+    proxy_cache_key "$scheme$request_method$host$request_uri";
+    proxy_pass http://backend:5000;
+}
 ```
 
 ## 安全加固

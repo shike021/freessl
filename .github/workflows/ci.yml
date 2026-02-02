@@ -144,6 +144,61 @@ jobs:
           ${{ secrets.DOCKER_USERNAME }}/freessl-frontend:latest
           ${{ secrets.DOCKER_USERNAME }}/freessl-frontend:${{ github.sha }}
 
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [build]
+    
+    services:
+      mariadb:
+        image: mariadb:10.6
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: freessl_test
+          MYSQL_USER: freessl
+          MYSQL_PASSWORD: freessl_password
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run Docker Compose for integration tests
+      run: |
+        cd free_ssl_service
+        docker-compose up -d
+        sleep 30
+        docker-compose exec backend pytest tests/integration_tests.py
+    
+  performance-tests:
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        cd free_ssl_service/backend
+        pip install -r requirements.txt
+        pip install locust
+    
+    - name: Run performance tests
+      run: |
+        cd free_ssl_service/backend
+        locust -f tests/performance_test.py --headless -u 10 -r 2 -t 1m --host=http://localhost:5000
+
   security-scan:
     runs-on: ubuntu-latest
     needs: [build]
@@ -162,3 +217,12 @@ jobs:
       uses: github/codeql-action/upload-sarif@v2
       with:
         sarif_file: 'trivy-results.sarif'
+    
+    - name: Check dependencies for vulnerabilities
+      run: |
+        cd free_ssl_service/backend
+        pip install safety
+        safety check -r requirements.txt
+        
+        cd ../frontend
+        npm audit

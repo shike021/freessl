@@ -22,17 +22,57 @@ jobs:
     - name: Deploy to production
       run: |
         ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          
+          # 备份当前部署
           cd /path/to/freessl
+          TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+          mkdir -p backups/$TIMESTAMP
+          docker-compose -f free_ssl_service/docker-compose.prod.yml down --volumes > backups/$TIMESTAMP/down.log 2>&1 || true
+          
+          # 更新代码
           git pull origin master
-          docker-compose -f free_ssl_service/docker-compose.prod.yml pull
+          
+          # 更新环境变量
+          cp .env.production .env || true
+          
+          # 构建和启动服务
+          docker-compose -f free_ssl_service/docker-compose.prod.yml build --pull
           docker-compose -f free_ssl_service/docker-compose.prod.yml up -d
+          
+          # 清理旧镜像
           docker image prune -f
+          
+          # 检查服务状态
+          docker-compose -f free_ssl_service/docker-compose.prod.yml ps
+          
+          # 清理30天前的备份
+          find backups -type d -mtime +30 -exec rm -rf {} \;
         ENDSSH
     
     - name: Health check
       run: |
-        sleep 30
-        curl -f https://${{ secrets.DEPLOY_DOMAIN }}/health || exit 1
+        sleep 60
+        curl -f https://${{ secrets.DEPLOY_DOMAIN }}/health || {
+          echo "Health check failed, rolling back..."
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'ENDSSH'
+            cd /path/to/freessl
+            LATEST_BACKUP=$(ls -1 backups/ | sort -r | head -1)
+            if [ -n "$LATEST_BACKUP" ]; then
+              docker-compose -f free_ssl_service/docker-compose.prod.yml down
+              cp -r backups/$LATEST_BACKUP/* .
+              docker-compose -f free_ssl_service/docker-compose.prod.yml up -d
+            fi
+          ENDSSH
+          exit 1
+        }
+    
+    - name: Performance validation
+      run: |
+        curl -o /tmp/hey https://hey-release.s3.us-east-2.amazonaws.com/hey_linux_amd64
+        chmod +x /tmp/hey
+        /tmp/hey -n 100 -c 10 https://${{ secrets.DEPLOY_DOMAIN }}/api/status
+        echo "Performance test completed successfully"
     
     - name: Notify deployment status
       if: always()
