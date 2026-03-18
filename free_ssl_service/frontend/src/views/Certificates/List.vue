@@ -7,7 +7,7 @@
       <el-col :span="12" class="text-right">
         <el-button
           type="primary"
-          icon="el-icon-plus"
+          :icon="Plus"
           @click="$router.push('/certificates/create')"
         >
           申请新证书
@@ -52,14 +52,14 @@
       <el-table-column label="操作" width="180">
         <template #default="{ row }">
           <el-button
-            size="mini"
+            size="small"
             @click="$router.push(`/certificates/${row.id}/renew`)"
             v-if="row.can_renew"
           >
             续期
           </el-button>
           <el-button
-            size="mini"
+            size="small"
             @click="$router.push(`/certificates/${row.id}`)"
           >
             详情
@@ -71,11 +71,13 @@
 </template>
 <script>
 import { mapState, mapActions } from 'vuex'
+import { Plus } from '@element-plus/icons-vue'
 
 export default {
   data() {
     return {
-      loading: false
+      loading: false,
+      Plus
     }
   },
   computed: {

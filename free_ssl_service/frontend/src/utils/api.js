@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Message } from 'element-ui'
+import { ElMessage } from 'element-plus'
 
 // Create axios instance with base URL
 const api = axios.create({
@@ -35,26 +35,26 @@ api.interceptors.response.use(
       
       switch (status) {
         case 401:
-          Message.error('未授权，请重新登录')
+          ElMessage.error('未授权，请重新登录')
           localStorage.removeItem('token')
           window.location.href = '/login'
           break
         case 403:
-          Message.error('没有权限访问此资源')
+          ElMessage.error('没有权限访问此资源')
           break
         case 404:
-          Message.error('请求的资源不存在')
+          ElMessage.error('请求的资源不存在')
           break
         case 500:
-          Message.error('服务器错误，请稍后重试')
+          ElMessage.error('服务器错误，请稍后重试')
           break
         default:
-          Message.error(data.error || '请求失败')
+          ElMessage.error(data.error || '请求失败')
       }
     } else if (error.request) {
-      Message.error('网络错误，请检查网络连接')
+      ElMessage.error('网络错误，请检查网络连接')
     } else {
-      Message.error('请求配置错误')
+      ElMessage.error('请求配置错误')
     }
     
     return Promise.reject(error)
