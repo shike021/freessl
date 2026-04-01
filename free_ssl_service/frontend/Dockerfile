@@ -1,5 +1,5 @@
 # 使用官方Node.js运行时作为父镜像
-FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/node:22-alpine AS build-stage
+FROM node:22-alpine AS build-stage
 
 # 设置工作目录
 WORKDIR /usr/src/app
@@ -13,7 +13,7 @@ COPY . .
 RUN npm run build
 
 # 使用Nginx服务静态文件
-FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nginx:1.25-alpine as production-stage
+FROM nginx:1.25-alpine as production-stage
 
 # 复制自定义Nginx配置
 COPY nginx.conf /etc/nginx/conf.d/default.conf

@@ -19,7 +19,7 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt ./
-RUN pip install --no-cache-dir --user -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+RUN pip install --no-cache-dir --user -r requirements.txt
 
 FROM python:3.9-alpine
 

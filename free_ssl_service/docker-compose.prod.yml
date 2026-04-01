@@ -2,19 +2,17 @@ version: '3.8'
 
 services:
   frontend:
-    build: 
+    build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - NODE_ENV=production
     restart: always
     expose:
-      - "80"
+      - "8080"
     depends_on:
       - backend
     environment:
       - NODE_ENV=production
-      - VUE_APP_API_URL=https://yourdomain.com/api
+      - VUE_APP_API_URL=https://freessl.shi021.cn/api
     networks:
       - freessl-network
 
