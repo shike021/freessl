@@ -1,8 +1,78 @@
 # Ubuntu 服务器部署指南
 
-## 服务器信息
+## 部署方式选择
 
-- **域名**: freessl.shi021.cn
+### 方式一：本地构建 + 远程部署（推荐，无需远程安装构建工具）
+**适用场景**：远程服务器资源有限，不想安装 Go/GCC 等构建依赖
+
+```
+本机(macOS/Linux)          远程 Ubuntu 服务器
+     │                            │
+     ├── docker compose build     │
+     ├── docker save → .tar       │
+     ─── scp .tar + .env + yml ──▶│
+                                  ├── docker load ← .tar
+                                  ├── sed 替换 nginx 域名
+                                  └── docker compose up -d
+```
+
+### 方式二：远程源码构建（传统方式）
+**适用场景**：远程服务器有足够的资源和完整的构建环境
+
+---
+
+## 方式一：本地构建 + 远程部署
+
+### 步骤 1：本地构建镜像（开发机器）
+
+```bash
+cd /path/to/freessl
+
+# 1. 配置环境变量
+cp free_ssl_service/.env.prod free_ssl_service/.env
+vim free_ssl_service/.env   # 修改 DOMAIN, SECRET_KEY, MARIADB_PASS 等
+
+# 2. 构建镜像
+./scripts/deploy.sh build
+
+# 3. 导出镜像为 tar 文件
+./scripts/deploy.sh export
+```
+
+### 步骤 2：传输到远程服务器
+
+```bash
+# 将以下文件传输到远程服务器
+scp -r free_ssl_service/docker-images/ user@remote:/opt/freessl/
+scp free_ssl_service/docker-compose.deploy.yml user@remote:/opt/freessl/
+scp free_ssl_service/.env user@remote:/opt/freessl/
+scp -r free_ssl_service/nginx/ user@remote:/opt/freessl/
+scp scripts/deploy.sh user@remote:/opt/freessl/scripts/
+```
+
+### 步骤 3：远程服务器导入并部署
+
+```bash
+ssh user@remote
+cd /opt/freessl
+
+# 1. 导入镜像
+./scripts/deploy.sh import
+
+# 2. 启动服务（会自动从 .env 读取 DOMAIN 并生成 nginx.conf）
+./scripts/deploy.sh deploy
+
+# 3. 检查状态
+./scripts/deploy.sh status
+```
+
+---
+
+## 方式二：远程源码构建
+
+### 服务器信息
+
+- **域名**: freessl.shi021.cn（示例）
 - **系统**: Ubuntu 20.04+ / 22.04
 
 ## 部署前准备

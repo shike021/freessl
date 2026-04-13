@@ -1,0 +1,263 @@
+version: '3.8'
+
+# Production deployment compose file
+# Usage: docker compose -f docker-compose.deploy.yml --env-file .env up -d
+# All sensitive values come from .env file
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VUE_APP_API_URL: ${VUE_APP_API_URL:-https://${DOMAIN}/api}
+        VUE_APP_API_BASE_URL: ${VUE_APP_API_BASE_URL:-https://${DOMAIN}/api}
+    image: freessl-frontend:${TAG:-latest}
+    restart: always
+    expose:
+      - "8080"
+    depends_on:
+      - backend
+    networks:
+      - freessl-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "512M"
+        reservations:
+          cpus: "0.25"
+          memory: "256M"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: freessl-backend:${TAG:-latest}
+    restart: always
+    expose:
+      - "5000"
+    depends_on:
+      - mariadb
+      - redis
+    environment:
+      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT=3306
+      - MARIADB_USER=${MARIADB_USER:-freessl}
+      - MARIADB_PASS=${MARIADB_PASS}
+      - MARIADB_DB=${MARIADB_DB:-freessl}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - EMAIL_API_KEY=${EMAIL_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM:-noreply@freessl.com}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - SQLALCHEMY_ECHO=false
+    volumes:
+      - certbot-config:/etc/letsencrypt:ro
+      - certbot-work:/var/lib/letsencrypt
+      - certbot-log:/var/log/letsencrypt
+    networks:
+      - freessl-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "1G"
+        reservations:
+          cpus: "0.5"
+          memory: "512M"
+
+  mariadb:
+    image: mariadb:10.6
+    restart: always
+    command: --innodb-buffer-pool-size=1G --max-connections=200
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MARIADB_DB:-freessl}
+      - MYSQL_USER=${MARIADB_USER:-freessl}
+      - MYSQL_PASSWORD=${MARIADB_PASS}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - freessl-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "512M"
+        reservations:
+          cpus: "0.25"
+          memory: "256M"
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - freessl-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "256M"
+        reservations:
+          cpus: "0.1"
+          memory: "128M"
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: freessl-backend:${TAG:-latest}
+    restart: always
+    command: celery -A app.celery worker --loglevel=info --concurrency=4
+    depends_on:
+      - backend
+      - redis
+      - mariadb
+    environment:
+      - FLASK_ENV=production
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT=3306
+      - MARIADB_USER=${MARIADB_USER:-freessl}
+      - MARIADB_PASS=${MARIADB_PASS}
+      - MARIADB_DB=${MARIADB_DB:-freessl}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - certbot-config:/etc/letsencrypt:ro
+      - certbot-work:/var/lib/letsencrypt
+      - certbot-log:/var/log/letsencrypt
+    networks:
+      - freessl-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "512M"
+        reservations:
+          cpus: "0.25"
+          memory: "256M"
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: freessl-backend:${TAG:-latest}
+    restart: always
+    command: celery -A app.celery beat --loglevel=info
+    depends_on:
+      - backend
+      - redis
+      - mariadb
+    environment:
+      - FLASK_ENV=production
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT=3306
+      - MARIADB_USER=${MARIADB_USER:-freessl}
+      - MARIADB_PASS=${MARIADB_PASS}
+      - MARIADB_DB=${MARIADB_DB:-freessl}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - certbot-config:/etc/letsencrypt:ro
+      - certbot-work:/var/lib/letsencrypt
+      - certbot-log:/var/log/letsencrypt
+    networks:
+      - freessl-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "256M"
+        reservations:
+          cpus: "0.1"
+          memory: "128M"
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - certbot-config:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - freessl-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "256M"
+        reservations:
+          cpus: "0.25"
+          memory: "128M"
+
+  certbot:
+    image: certbot/certbot
+    restart: always
+    volumes:
+      - certbot-config:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet --post-hook \"nginx -s reload\"; sleep 12h & wait $${!}; done;'"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: "128M"
+        reservations:
+          cpus: "0.05"
+          memory: "64M"
+
+volumes:
+  mariadb-data:
+  redis-data:
+  certbot-config:
+  certbot-work:
+  certbot-log:
+  certbot-www:
+
+networks:
+  freessl-network:
+    driver: bridge
