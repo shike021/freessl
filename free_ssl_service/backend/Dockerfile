@@ -1,4 +1,4 @@
-FROM python:3.9-alpine AS builder
+FROM python:3.11-alpine AS builder
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -8,7 +8,7 @@ ENV PYTHONUNBUFFERED 1
 RUN apk add --no-cache \
     gcc \
     musl-dev \
-    mysql-dev \
+    mariadb-dev \
     pkgconf \
     libffi-dev \
     openssl-dev \
@@ -21,7 +21,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-FROM python:3.9-alpine
+FROM python:3.11-alpine
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -30,7 +30,7 @@ ENV PATH="/root/.local/bin:$PATH"
 
 # Install runtime dependencies
 RUN apk add --no-cache \
-    mysql-client \
+    mariadb-client \
     certbot \
     openssl
 
