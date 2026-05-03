@@ -1,18 +1,17 @@
-FROM python:3.11-alpine AS builder
+FROM python:3.11-slim AS builder
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # Install system dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    musl-dev \
-    mariadb-dev \
-    pkgconf \
+    default-libmysqlclient-dev \
+    pkg-config \
     libffi-dev \
-    openssl-dev \
-    python3-dev
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
 WORKDIR /app
@@ -21,7 +20,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -29,10 +28,10 @@ ENV PYTHONUNBUFFERED 1
 ENV PATH="/root/.local/bin:$PATH"
 
 # Install runtime dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     mariadb-client \
     certbot \
-    openssl
+    && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
 WORKDIR /app

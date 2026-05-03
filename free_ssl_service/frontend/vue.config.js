@@ -125,7 +125,6 @@ module.exports = {
       }
     },
     extract: process.env.NODE_ENV === 'production',
-    sourceMap: false,
-    requireModuleExtension: true
+    sourceMap: false
   }
 }
