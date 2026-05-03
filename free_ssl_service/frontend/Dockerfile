@@ -13,7 +13,7 @@ WORKDIR /usr/src/app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm install --registry=https://registry.npmmirror.com && npm cache clean --force
+RUN npm install --legacy-peer-deps --registry=https://registry.npmmirror.com && npm cache clean --force
 
 # Copy project files and build
 COPY . .
