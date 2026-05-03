@@ -11,9 +11,9 @@ ENV VUE_APP_API_BASE_URL=${VUE_APP_API_BASE_URL}
 # Set work directory
 WORKDIR /usr/src/app
 
-# Install dependencies
-COPY package*.json ./
-RUN npm install --legacy-peer-deps --registry=https://registry.npmmirror.com
+# Install dependencies (separate layer for caching)
+COPY package.json package-lock.json* ./
+RUN npm install --legacy-peer-deps --registry=https://registry.npmmirror.com --no-audit --no-fund
 
 # Copy project files and build
 COPY . .
@@ -27,14 +27,6 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy build artifacts
 COPY --from=build-stage /usr/src/app/dist /usr/share/nginx/html
-
-# Optimize Nginx config
-RUN echo "\n# Additional optimizations" >> /etc/nginx/nginx.conf && \
-    echo "worker_processes auto;" >> /etc/nginx/nginx.conf && \
-    echo "events {" >> /etc/nginx/nginx.conf && \
-    echo "    worker_connections 1024;" >> /etc/nginx/nginx.conf && \
-    echo "    multi_accept on;" >> /etc/nginx/nginx.conf && \
-    echo "}" >> /etc/nginx/nginx.conf
 
 # Expose port
 EXPOSE 8080
