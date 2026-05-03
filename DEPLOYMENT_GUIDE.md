@@ -115,13 +115,13 @@ sudo systemctl restart nginx
 
 ```bash
 # 构建所有镜像（可能需要10-20分钟）
-docker-compose -f docker-compose.ubuntu.yml build
+docker compose -f docker-compose.ubuntu.yml build
 
 # 启动所有服务
-docker-compose -f docker-compose.ubuntu.yml up -d
+docker compose -f docker-compose.ubuntu.yml up -d
 
 # 查看服务状态
-docker-compose -f docker-compose.ubuntu.yml ps
+docker compose -f docker-compose.ubuntu.yml ps
 ```
 
 ### 步骤5：初始化数据库
@@ -131,17 +131,17 @@ docker-compose -f docker-compose.ubuntu.yml ps
 sleep 10
 
 # 初始化数据库表
-docker-compose -f docker-compose.ubuntu.yml exec backend python -c "from models.db import db; from app import app; with app.app_context(): db.create_all()"
+docker compose -f docker-compose.ubuntu.yml exec backend python -c "from models.db import db; from app import app; with app.app_context(): db.create_all()"
 ```
 
 ### 步骤6：验证部署
 
 ```bash
 # 检查所有容器状态
-docker-compose -f docker-compose.ubuntu.yml ps
+docker compose -f docker-compose.ubuntu.yml ps
 
 # 查看日志
-docker-compose -f docker-compose.ubuntu.yml logs -f
+docker compose -f docker-compose.ubuntu.yml logs -f
 
 # 测试API健康检查
 curl http://localhost:5001/health
@@ -160,40 +160,40 @@ curl http://localhost:8081
 
 ```bash
 # 停止所有服务
-docker-compose -f docker-compose.ubuntu.yml down
+docker compose -f docker-compose.ubuntu.yml down
 
 # 启动所有服务
-docker-compose -f docker-compose.ubuntu.yml up -d
+docker compose -f docker-compose.ubuntu.yml up -d
 
 # 重启所有服务
-docker-compose -f docker-compose.ubuntu.yml restart
+docker compose -f docker-compose.ubuntu.yml restart
 
 # 重启特定服务
-docker-compose -f docker-compose.ubuntu.yml restart backend
+docker compose -f docker-compose.ubuntu.yml restart backend
 ```
 
 ### 查看日志
 
 ```bash
 # 查看所有服务日志
-docker-compose -f docker-compose.ubuntu.yml logs -f
+docker compose -f docker-compose.ubuntu.yml logs -f
 
 # 查看特定服务日志
-docker-compose -f docker-compose.ubuntu.yml logs -f backend
-docker-compose -f docker-compose.ubuntu.yml logs -f frontend
+docker compose -f docker-compose.ubuntu.yml logs -f backend
+docker compose -f docker-compose.ubuntu.yml logs -f frontend
 
 # 查看最近100行日志
-docker-compose -f docker-compose.ubuntu.yml logs --tail 100
+docker compose -f docker-compose.ubuntu.yml logs --tail 100
 ```
 
 ### 进入容器
 
 ```bash
 # 进入backend容器
-docker-compose -f docker-compose.ubuntu.yml exec backend sh
+docker compose -f docker-compose.ubuntu.yml exec backend sh
 
 # 进入mariadb容器
-docker-compose -f docker-compose.ubuntu.yml exec mariadb mysql -u freessl -p
+docker compose -f docker-compose.ubuntu.yml exec mariadb mysql -u freessl -p
 ```
 
 ## 五、端口说明
@@ -214,10 +214,10 @@ docker-compose -f docker-compose.ubuntu.yml exec mariadb mysql -u freessl -p
 mkdir -p backups
 
 # 备份数据库
-docker-compose -f docker-compose.ubuntu.yml exec mariadb mysqldump -u freessl -pfreessl_password freessl > backups/freessl_$(date +%Y%m%d).sql
+docker compose -f docker-compose.ubuntu.yml exec mariadb mysqldump -u freessl -pfreessl_password freessl > backups/freessl_$(date +%Y%m%d).sql
 
 # 恢复数据库
-docker-compose -f docker-compose.ubuntu.yml exec -T mariadb mysql -u freessl -pfreessl_password freessl < backups/freessl_20240101.sql
+docker compose -f docker-compose.ubuntu.yml exec -T mariadb mysql -u freessl -pfreessl_password freessl < backups/freessl_20240101.sql
 ```
 
 ### 备份配置
@@ -245,7 +245,7 @@ cp .env backups/.env.backup
 docker ps -a
 
 # 查看容器日志
-docker-compose -f docker-compose.ubuntu.yml logs backend
+docker compose -f docker-compose.ubuntu.yml logs backend
 
 # 检查端口占用
 sudo netstat -tulpn | grep LISTEN
@@ -261,13 +261,13 @@ sudo tail -f /var/log/nginx/error.log
 
 ```bash
 # 停止并删除容器
-docker-compose -f docker-compose.ubuntu.yml down
+docker compose -f docker-compose.ubuntu.yml down
 
 # 删除镜像（可选）
-docker-compose -f docker-compose.ubuntu.yml down --rmi local
+docker compose -f docker-compose.ubuntu.yml down --rmi local
 
 # 重新构建并启动
-docker-compose -f docker-compose.ubuntu.yml up -d --build
+docker compose -f docker-compose.ubuntu.yml up -d --build
 ```
 
 ## 八、更新部署
@@ -277,10 +277,10 @@ docker-compose -f docker-compose.ubuntu.yml up -d --build
 git pull origin develop
 
 # 重新构建（如果Dockerfile有变化）
-docker-compose -f docker-compose.ubuntu.yml build
+docker compose -f docker-compose.ubuntu.yml build
 
 # 重启服务
-docker-compose -f docker-compose.ubuntu.yml up -d
+docker compose -f docker-compose.ubuntu.yml up -d
 ```
 
 ## 九、资源限制
