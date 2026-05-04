@@ -80,10 +80,15 @@ module.exports = {
       return args
     })
     
-    // Add bundle analyzer
+    // Add bundle analyzer (static mode for CI/CD)
     if (process.env.NODE_ENV === 'production') {
       config.plugin('webpack-bundle-analyzer')
-        .use(require('webpack-bundle-analyzer').BundleAnalyzerPlugin)
+        .use(require('webpack-bundle-analyzer').BundleAnalyzerPlugin, [{
+          analyzerMode: 'static',
+          reportFilename: 'bundle-report.html',
+          openAnalyzer: false,
+          generateStatsFile: false
+        }])
         .end()
     }
     
