@@ -37,10 +37,13 @@ class Config:
     CERTBOT_WORK_DIR = os.getenv('CERTBOT_WORK_DIR', '/var/lib/letsencrypt')
     CERTBOT_LOG_DIR = os.getenv('CERTBOT_LOG_DIR', '/var/log/letsencrypt')
     
-    # Email configuration
-    EMAIL_SERVICE = os.getenv('EMAIL_SERVICE', 'sendgrid')
-    EMAIL_API_KEY = os.getenv('EMAIL_API_KEY', '')
+    # Email configuration (SMTP)
+    SMTP_HOST = os.getenv('SMTP_HOST', 'smtp.gmail.com')
+    SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
+    SMTP_USER = os.getenv('SMTP_USER', '')
+    SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
     EMAIL_FROM = os.getenv('EMAIL_FROM', 'noreply@freessl.com')
+    EMAIL_BASE_URL = os.getenv('EMAIL_BASE_URL', 'http://localhost:8080')
     
     # OAuth configuration
     GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')

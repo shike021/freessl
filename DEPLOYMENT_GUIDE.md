@@ -92,7 +92,14 @@ nano .env
 SECRET_KEY=<填入生成的32字节随机字符串>
 ENCRYPTION_KEY=<填入生成的Fernet密钥>
 MARIADB_PASS=<数据库密码，建议修改>
-EMAIL_API_KEY=<你的SendGrid API密钥>
+
+# SMTP 邮件配置（国内推荐使用 QQ 企业邮箱或阿里云邮件推送）
+SMTP_HOST=<SMTP服务器地址>
+SMTP_PORT=<SMTP端口，通常为587>
+SMTP_USER=<邮箱用户名>
+SMTP_PASSWORD=<邮箱密码或授权码>
+EMAIL_FROM=<发件人邮箱>
+EMAIL_BASE_URL=<网站访问地址，如 https://freessl.shi021.cn>
 ```
 
 ### 步骤3：配置宿主机Nginx
