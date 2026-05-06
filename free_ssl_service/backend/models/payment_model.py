@@ -8,7 +8,7 @@ class PaymentOrder(db.Model):
     order_id = db.Column(db.String(64), unique=True, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     cert_id = db.Column(db.Integer, db.ForeignKey('certificates.id'), nullable=False)
-    amount = db.Column(db.Decimal(10, 2), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
     payment_method = db.Column(db.String(20), nullable=False)  # alipay, wechat
     status = db.Column(db.String(20), default='pending')  # pending, paid, failed, cancelled
     created_at = db.Column(db.DateTime, default=datetime.now)
