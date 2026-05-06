@@ -30,7 +30,7 @@ class Config:
     
     # Celery configuration
     CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
-    CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
+    result_backend = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
     
     # Certbot configuration
     CERTBOT_CONFIG_DIR = os.getenv('CERTBOT_CONFIG_DIR', '/etc/letsencrypt')

@@ -45,7 +45,7 @@ limiter = Limiter(
     app,
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
-    storage_uri=app.config['CELERY_RESULT_BACKEND']
+    storage_uri=app.config['result_backend']
 )
 
 # CORS configuration
@@ -131,7 +131,7 @@ from models.invitation_model import Invitation
 def make_celery(app):
     celery = Celery(
         app.import_name,
-        backend=app.config['CELERY_RESULT_BACKEND'],
+        backend=app.config['result_backend'],
         broker=app.config['CELERY_BROKER_URL']
     )
     celery.conf.update(app.config)
