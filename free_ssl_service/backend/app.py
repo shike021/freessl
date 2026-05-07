@@ -17,6 +17,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
+app.config['result_backend'] = app.config.get('RESULT_BACKEND')  # For Celery 5.x compatibility
 
 # Swagger API Documentation
 swagger = Swagger(app, template={
