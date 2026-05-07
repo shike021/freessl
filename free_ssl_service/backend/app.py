@@ -165,6 +165,11 @@ app.register_blueprint(cert_bp)
 app.register_blueprint(payment_bp)
 app.register_blueprint(invitation_bp)
 
+csrf.exempt(auth_bp)
+csrf.exempt(cert_bp)
+csrf.exempt(payment_bp)
+csrf.exempt(invitation_bp)
+
 # Create database tables
 with app.app_context():
     db.create_all()
